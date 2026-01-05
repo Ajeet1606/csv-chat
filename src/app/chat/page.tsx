@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Send, Upload, RotateCcw, Menu, X } from 'lucide-react';
 import { ChatMessage } from '@/components/chat/chat-message';
 import { AssistantMessage } from '@/components/chat/assistant-message';
@@ -40,7 +40,7 @@ export default function ChatPage() {
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const rowCount = 10;
 
   useEffect(() => {
@@ -345,8 +345,8 @@ print(trend)`,
         {/* Input Area */}
         <div className="border-border bg-background/95 border-t p-4 backdrop-blur-sm sm:p-6">
           <div className="mx-auto max-w-4xl space-y-3">
-            <div className="flex gap-2">
-              <Input
+            <div className="flex gap-2 items-end">
+              <Textarea
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -358,7 +358,7 @@ print(trend)`,
                 }}
                 placeholder="Ask a question... (Shift+Enter for newline)"
                 disabled={isLoading}
-                className="text-sm"
+                className="text-sm min-h-[44px] max-h-[200px]"
               />
               <Button
                 onClick={() => handleSendMessage()}

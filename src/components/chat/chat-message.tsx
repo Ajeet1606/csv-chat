@@ -16,7 +16,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       <div
         className={`bg-${isUser ? "primary" : "secondary"} text-${isUser ? "primary-foreground" : "secondary-foreground"} rounded-lg px-4 py-3 max-w-2xl text-sm`}
       >
-        <p className="leading-relaxed">{message.content}</p>
+        <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>
         <span className="text-xs mt-2 block opacity-70">
           {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </span>
