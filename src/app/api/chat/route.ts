@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { generatePythonCode } from '@/lib/llm-service';
 import { getDatasetMetadata } from '@/lib/csv-service';
+import { executePythonCode } from '@/lib/python-executor';
 
 export async function POST(request: Request) {
   try {
@@ -23,16 +24,36 @@ export async function POST(request: Request) {
     }
 
     // Generate Python code for the query
-    const code = await generatePythonCode(message, metadata);
+    const generation = await generatePythonCode(message, metadata);
+
+    // Execute the code in a sandboxed Docker container
+    const execution = await executePythonCode(
+      generation.code,
+      metadata.filePath
+    );
+
+    if (!execution.success) {
+      return NextResponse.json({
+        success: false,
+        analysis: {
+          summary: generation.summary,
+          pythonCode: generation.code,
+          codeOutput: execution.error || 'Unknown error',
+          explanation: execution.stderr || 'No additional details available',
+          executionTime: execution.executionTime,
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,
       analysis: {
-        summary: 'Here is the Python code to analyze your data:',
-        pythonCode: code,
-        // In a real app, we would run the code here and return output/charts
-        codeOutput: '# execution result would appear here',
-        explanation: 'Generated code based on your request.',
+        summary: generation.summary,
+        pythonCode: generation.code,
+        codeOutput: JSON.stringify(execution.result, null, 2),
+        explanation: `Execution completed in ${execution.executionTime}ms`,
+        executionTime: execution.executionTime,
+        result: execution.result,
       },
     });
   } catch (error) {
