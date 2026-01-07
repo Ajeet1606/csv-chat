@@ -88,128 +88,57 @@ export default function ChatPage() {
     setShowSuggestions(false);
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      const mockAnalyses = [
-        {
-          summary: `Analyzed "${text}" across your dataset. Found significant patterns in the data with ${Math.floor(Math.random() * 5000)} matching records.`,
-          pythonCode: `import pandas as pd
-import numpy as np
+    // Get context from sessionStorage
+    const csvFile = sessionStorage.getItem('csvFile');
+    let context = {};
+    if (csvFile) {
+      const parsed = JSON.parse(csvFile);
+      context = {
+        headers: parsed.headers,
+        sampleData: parsed.data
+      };
+    }
 
-# Load dataset
-df = pd.read_csv('dataset.csv')
-
-# Analyze by category
-result = df.groupby('category')['value'].sum()
-print(result)`,
-          codeOutput: `category
-Category A    450.75
-Category B    380.50
-Category C    520.25
-Category D    275.00
-Category E    610.00
-Name: value, dtype: float64`,
-          chartType: 'bar',
-          chartData: {
-            labels: [
-              'Category A',
-              'Category B',
-              'Category C',
-              'Category D',
-              'Category E',
-            ],
-            datasets: [
-              {
-                label: 'Value',
-                data: [450.75, 380.5, 520.25, 275.0, 610.0],
-                backgroundColor: [
-                  'hsl(var(--color-chart-1))',
-                  'hsl(var(--color-chart-2))',
-                  'hsl(var(--color-chart-3))',
-                  'hsl(var(--color-chart-4))',
-                  'hsl(var(--color-chart-5))',
-                ],
-              },
-            ],
-          },
-          explanation:
-            'Grouped by category and calculated total values, then visualized using a bar chart.',
-          columns: ['category', 'value'],
-          aggregations: ['SUM', 'GROUP BY'],
-          intent: 'Aggregation & Comparison',
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {
-          summary: `Analyzed trend over time for "${text}". Data shows a clear pattern across ${Math.floor(Math.random() * 12)} months.`,
-          pythonCode: `import pandas as pd
-import matplotlib.pyplot as plt
+        body: JSON.stringify({
+          message: text,
+          context,
+        }),
+      });
 
-# Load and prepare data
-df = pd.read_csv('dataset.csv')
-df['date'] = pd.to_datetime(df['date'])
-trend = df.groupby(df['date'].dt.to_period('M'))['metric'].sum()
+      if (!response.ok) {
+        throw new Error('Chat request failed');
+      }
 
-print(trend)`,
-          codeOutput: `date
-2024-01    450
-2024-02    480
-2024-03    420
-2024-04    550
-2024-05    590
-2024-06    720
-2024-07    750
-2024-08    820
-2024-09    890
-2024-10    920
-2024-11    1050
-2024-12    1150`,
-          chartType: 'line',
-          chartData: {
-            labels: [
-              'Jan',
-              'Feb',
-              'Mar',
-              'Apr',
-              'May',
-              'Jun',
-              'Jul',
-              'Aug',
-              'Sep',
-              'Oct',
-              'Nov',
-              'Dec',
-            ],
-            datasets: [
-              {
-                label: 'Trend',
-                data: [30, 40, 35, 50, 49, 60, 70, 75, 80, 85, 90, 95],
-                borderColor: 'hsl(var(--color-chart-1))',
-                backgroundColor: 'hsl(var(--color-chart-1) / 0.1)',
-                tension: 0.4,
-              },
-            ],
-          },
-          explanation:
-            'Extracted time series data and plotted trends across the year.',
-          columns: ['date', 'metric'],
-          aggregations: ['TIME_SERIES', 'SUM'],
-          intent: 'Trend Analysis',
-        },
-      ];
+      const data = await response.json();
 
-      const result =
-        mockAnalyses[Math.floor(Math.random() * mockAnalyses.length)];
-
-      const assistantMessage: Message = {
+      if (data.success && data.analysis) {
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'assistant',
+          content: data.analysis.summary,
+          timestamp: new Date(),
+          analysis: data.analysis,
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+      }
+    } catch (error) {
+      console.error('Chat failed:', error);
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: result.summary,
+        content: 'Sorry, I encountered an error while processing your request.',
         timestamp: new Date(),
-        analysis: result,
       };
-
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleReset = () => {

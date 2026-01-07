@@ -36,3 +36,43 @@ export async function generateQuestions(headers: string[], sampleData: string[][
     throw error; // Re-throw to be handled by the caller
   }
 }
+
+export async function generatePythonCode(query: string, headers: string[], sampleData: string[][]): Promise<string> {
+    try {
+        const prompt = `
+      You are a data analyst helper.
+      Here are the headers of a CSV file: ${headers.join(', ')}.
+      Here is some sample data (first few rows):
+      ${sampleData.map(row => row.join(', ')).join('\n')}
+      
+      User Question: "${query}"
+
+      Write a Python code snippet using pandas to answer this question.
+      Assume the dataset is already loaded into a variable named 'df'.
+      
+      Requirements:
+      1. Use 'df' as the dataframe.
+      2. Print the final result using print().
+      3. Return ONLY the python code. Do not include markdown backticks like \`\`\`python or explain anything.
+      4. Keep it concise.
+    `;
+
+        const completion = await openai.chat.completions.create({
+            model: 'mistral',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.2, // Lower temperature for code
+        });
+
+        let content = completion.choices[0]?.message?.content || '';
+
+        // Strip markdown code blocks if present
+        content = content.replace(/^```python\n/, '').replace(/\n```$/, '');
+        content = content.replace(/^```\n/, '').replace(/\n```$/, '');
+
+        return content.trim();
+
+    } catch (error) {
+        console.error('LLM code generation failed:', error);
+        throw error;
+    }
+}

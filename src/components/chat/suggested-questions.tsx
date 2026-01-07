@@ -32,7 +32,7 @@ export function SuggestedQuestions({ onSelect, questions = [] }: SuggestedQuesti
             variant="outline"
             size="sm"
             onClick={() => onSelect(question)}
-            className="justify-start text-left text-xs"
+            className="justify-start text-left text-xs cursor-pointer"
           >
             {question}
           </Button>

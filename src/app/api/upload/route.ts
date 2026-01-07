@@ -35,6 +35,7 @@ export async function POST(request: Request) {
                 size: file.size,
                 uploadedAt: new Date().toISOString(),
                 headers, // Return headers as well
+                data,    // Return sample data for context
                 questions,
                 processingError,
             },
