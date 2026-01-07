@@ -88,15 +88,15 @@ export default function ChatPage() {
     setShowSuggestions(false);
     setIsLoading(true);
 
-    // Get context from sessionStorage
+    // Get datasetId from sessionStorage
     const csvFile = sessionStorage.getItem('csvFile');
-    let context = {};
+    let datasetId = '';
+    
     if (csvFile) {
       const parsed = JSON.parse(csvFile);
-      context = {
-        headers: parsed.headers,
-        sampleData: parsed.data
-      };
+      if (parsed.metadata && parsed.metadata.datasetId) {
+        datasetId = parsed.metadata.datasetId;
+      }
     }
 
     try {
@@ -107,7 +107,7 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           message: text,
-          context,
+          datasetId,
         }),
       });
 

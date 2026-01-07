@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { parseCSVPreview } from '@/lib/csv-service';
+import { parseCSVWithMetadata } from '@/lib/csv-service';
 import { generateQuestions } from '@/lib/llm-service';
 
 export async function POST(request: Request) {
@@ -15,14 +15,14 @@ export async function POST(request: Request) {
         }
 
         // Parse CSV to get headers and sample data
-        const { headers, data } = await parseCSVPreview(file);
+        const metadata = await parseCSVWithMetadata(file);
 
         let questions: string[] = [];
         let processingError: string | undefined;
 
         try {
             // Generate questions using Local LLM
-            questions = await generateQuestions(headers, data);
+            questions = await generateQuestions(metadata);
         } catch (error) {
             console.error('LLM analysis failed:', error);
             processingError = 'No LLM found to analyse';
@@ -32,10 +32,7 @@ export async function POST(request: Request) {
             success: true,
             fileInfo: {
                 name: file.name,
-                size: file.size,
-                uploadedAt: new Date().toISOString(),
-                headers, // Return headers as well
-                data,    // Return sample data for context
+                metadata: { datasetId: metadata.datasetId },
                 questions,
                 processingError,
             },

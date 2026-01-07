@@ -5,15 +5,25 @@ const openai = new OpenAI({
   apiKey: 'ollama', // Required but ignored by Ollama
 });
 
-export async function generateQuestions(headers: string[], sampleData: string[][]): Promise<string[]> {
+import { DatasetMetadata } from './csv-service';
+
+export async function generateQuestions(metadata: DatasetMetadata): Promise<string[]> {
   try {
+    const columnsDescription = metadata.columns
+      .map(c => `- ${c.name} (${c.type}): ${c.distinctCount} distinct values`)
+      .join('\n');
+
     const prompt = `
       You are a data analyst helper.
-      Here are the headers of a CSV file: ${headers.join(', ')}.
-      Here is some sample data (first few rows):
-      ${sampleData.map(row => row.join(', ')).join('\n')}
+      Dataset: ${metadata.fileName}
+      Context:
+      ${columnsDescription}
+      
+      Sample data (first 5 rows):
+      ${metadata.sampleRows.map(row => row.join(', ')).join('\n')}
       
       Based on this, generate 5 interesting questions a user could ask to analyze this data.
+      Focus on questions that leverage the column types (e.g. time-series trends if dates exist, aggregations for numbers).
       Return ONLY the questions, one per line. Do not include numbering or extra text.
     `;
 
@@ -37,42 +47,74 @@ export async function generateQuestions(headers: string[], sampleData: string[][
   }
 }
 
-export async function generatePythonCode(query: string, headers: string[], sampleData: string[][]): Promise<string> {
-    try {
-        const prompt = `
-      You are a data analyst helper.
-      Here are the headers of a CSV file: ${headers.join(', ')}.
-      Here is some sample data (first few rows):
-      ${sampleData.map(row => row.join(', ')).join('\n')}
-      
-      User Question: "${query}"
 
-      Write a Python code snippet using pandas to answer this question.
-      Assume the dataset is already loaded into a variable named 'df'.
-      
-      Requirements:
-      1. Use 'df' as the dataframe.
-      2. Print the final result using print().
-      3. Return ONLY the python code. Do not include markdown backticks like \`\`\`python or explain anything.
-      4. Keep it concise.
-    `;
+export async function generatePythonCode(
+  query: string,
+  metadata: DatasetMetadata
+): Promise<string> {
+  try {
+    const columnsDescription = metadata.columns
+      .map(c => `- ${c.name} (${c.type}${c.min !== undefined ? `, min=${c.min}, max=${c.max}` : ''})`)
+      .join('\n');
 
-        const completion = await openai.chat.completions.create({
-            model: 'mistral',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.2, // Lower temperature for code
-        });
+    const prompt = `
+You are a senior data analyst generating SAFE, DETERMINISTIC Python code
+that will be executed inside a restricted Docker sandbox.
 
-        let content = completion.choices[0]?.message?.content || '';
+Context:
+- Dataset: ${metadata.fileName}
+- A CSV file has already been loaded into a pandas DataFrame named "df"
+- Available columns:
+${columnsDescription}
 
-        // Strip markdown code blocks if present
-        content = content.replace(/^```python\n/, '').replace(/\n```$/, '');
-        content = content.replace(/^```\n/, '').replace(/\n```$/, '');
+Sample rows (for understanding only — do NOT hardcode values):
+${metadata.sampleRows.map(row => row.join(", ")).join("\n")}
 
-        return content.trim();
+User question:
+"${query}"
 
-    } catch (error) {
-        console.error('LLM code generation failed:', error);
-        throw error;
-    }
+STRICT REQUIREMENTS:
+1. Use ONLY the dataframe variable named "df"
+2. Perform ONLY data analysis or transformation
+3. Do NOT generate charts, plots, or visualizations
+4. Do NOT use print() for final results
+5. The final result MUST be written to "output.json" as valid JSON
+6. If the result is tabular, convert it using:
+   result.to_dict(orient="records")
+7. If the result is a single value, wrap it in an object:
+   { "value": result }
+8. Use only: pandas, numpy, json
+9. Do NOT import matplotlib, seaborn, os, sys, subprocess, or any network libraries
+10. Do NOT read or write any files except "output.json"
+11. Return ONLY valid Python code. No markdown. No explanations.
+
+ERROR HANDLING:
+- If the question cannot be answered using the given columns,
+  write this to output.json:
+  { "error": "reason" }
+
+Now generate the Python code.
+`;
+
+    const completion = await openai.chat.completions.create({
+      model: "mistral",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.1,
+    });
+
+    let content = completion.choices[0]?.message?.content || "";
+
+    // Defensive cleanup in case the model adds code fences
+    content = content
+      .replace(/^```python\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/, "")
+      .trim();
+
+    return content;
+
+  } catch (error) {
+    console.error("LLM code generation failed:", error);
+    throw error;
+  }
 }

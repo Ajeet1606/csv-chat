@@ -1,24 +1,29 @@
 import { NextResponse } from 'next/server';
 import { generatePythonCode } from '@/lib/llm-service';
+import { getDatasetMetadata } from '@/lib/csv-service';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { message, context } = body;
+    const { message, datasetId } = body;
 
-    if (!message || !context || !context.headers || !context.sampleData) {
+    if (!message || !datasetId) {
       return NextResponse.json(
-        { error: 'Invalid request: missing message or context' },
+        { error: 'Invalid request: missing message or datasetId' },
         { status: 400 }
       );
     }
 
+    const metadata = await getDatasetMetadata(datasetId);
+    if (!metadata) {
+      return NextResponse.json(
+        { error: 'Dataset not found or expired' },
+        { status: 404 }
+      );
+    }
+
     // Generate Python code for the query
-    const code = await generatePythonCode(
-      message,
-      context.headers,
-      context.sampleData
-    );
+    const code = await generatePythonCode(message, metadata);
 
     return NextResponse.json({
       success: true,
