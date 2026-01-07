@@ -43,11 +43,20 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const rowCount = 10;
 
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
+  const [processingError, setProcessingError] = useState<string | null>(null);
+
   useEffect(() => {
     const csvFile = sessionStorage.getItem('csvFile');
     if (csvFile) {
-      const { name } = JSON.parse(csvFile);
-      setDatasetName(name.replace('.csv', ''));
+      const parsed = JSON.parse(csvFile);
+      setDatasetName(parsed.name.replace('.csv', ''));
+      if (parsed.questions && parsed.questions.length > 0) {
+        setSuggestedQuestions(parsed.questions);
+      }
+      if (parsed.processingError) {
+        setProcessingError(parsed.processingError);
+      }
     }
   }, []);
 
@@ -315,7 +324,18 @@ print(trend)`,
                 </div>
               </div>
 
-              <SuggestedQuestions onSelect={handleSendMessage} />
+              {processingError && (
+                <div className="mb-4 rounded-lg bg-yellow-500/10 p-3 text-xs text-yellow-600 dark:text-yellow-400">
+                  <span className="font-semibold">Note:</span> {processingError}
+                  <br />
+                  <span className="opacity-80">Using default questions instead.</span>
+                </div>
+              )}
+
+              <SuggestedQuestions 
+                onSelect={handleSendMessage} 
+                questions={suggestedQuestions}
+              />
             </div>
           )}
 

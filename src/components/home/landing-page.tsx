@@ -14,25 +14,31 @@ export default function LandingPage() {
   const handleFileUpload = async (file: File) => {
     setIsLoading(true);
     try {
-      // Simulate file upload and validation
       const formData = new FormData();
       formData.append('file', file);
 
-      // Store file info in sessionStorage for the next page
-      const fileInfo = {
-        name: file.name,
-        size: file.size,
-        uploadedAt: new Date().toISOString(),
-      };
-      sessionStorage.setItem('csvFile', JSON.stringify(fileInfo));
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
-      // Simulate profiling delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
 
-      // Navigate to chat page
-      router.push('/chat');
+      const data = await response.json();
+
+      if (data.success) {
+        // Store file info in sessionStorage for the next page
+        sessionStorage.setItem('csvFile', JSON.stringify(data.fileInfo));
+        
+        // Navigate to chat page
+        router.push('/chat');
+      }
     } catch (error) {
       console.error('Upload failed:', error);
+      // You might want to show a toast or error message here
+    } finally {
       setIsLoading(false);
     }
   };

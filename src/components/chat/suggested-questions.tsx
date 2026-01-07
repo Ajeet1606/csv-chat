@@ -5,6 +5,7 @@ import { Lightbulb } from 'lucide-react';
 
 interface SuggestedQuestionsProps {
   onSelect: (question: string) => void;
+  questions?: string[];
 }
 
 const DEFAULT_QUESTIONS = [
@@ -15,7 +16,9 @@ const DEFAULT_QUESTIONS = [
   'Correlation analysis',
 ];
 
-export function SuggestedQuestions({ onSelect }: SuggestedQuestionsProps) {
+export function SuggestedQuestions({ onSelect, questions = [] }: SuggestedQuestionsProps) {
+  const displayQuestions = questions.length > 0 ? questions : DEFAULT_QUESTIONS;
+
   return (
     <div className="w-full space-y-2">
       <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium">
@@ -23,9 +26,9 @@ export function SuggestedQuestions({ onSelect }: SuggestedQuestionsProps) {
         Try asking
       </div>
       <div className="grid grid-cols-1 gap-2">
-        {DEFAULT_QUESTIONS.map((question) => (
+        {displayQuestions.map((question, index) => (
           <Button
-            key={question}
+            key={`${question}-${index}`}
             variant="outline"
             size="sm"
             onClick={() => onSelect(question)}
