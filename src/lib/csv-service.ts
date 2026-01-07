@@ -23,6 +23,7 @@ export type DatasetMetadata = {
   columns: ColumnMetadata[];
   sampleRows: string[][];
   createdAt: string;
+  filePath: string;
 };
 
 export type ParsedCSV = {
@@ -96,6 +97,9 @@ export async function parseCSVWithMetadata(
     };
   });
 
+  const fileName = `${datasetId}.csv`;
+  const filePath = path.join(process.cwd(), "data", "uploads", fileName);
+
   const metadata: DatasetMetadata = {
     datasetId,
     fileName: file.name,
@@ -105,9 +109,10 @@ export async function parseCSVWithMetadata(
     columns: columnsMetadata,
     sampleRows: rows,
     createdAt: new Date().toISOString(),
+    filePath,
   };
 
-  await persistMetadata(metadata);
+  await persistDataset(metadata, text);
 
   return metadata;
 }
@@ -119,16 +124,22 @@ const METADATA_FILE = path.join(
   "datasets-metadata.json"
 );
 
-async function persistMetadata(metadata: DatasetMetadata) {
+async function persistDataset(metadata: DatasetMetadata, content: string) {
+  // Ensure both metadata dir and uploads dir exist
   await fs.mkdir(path.dirname(METADATA_FILE), { recursive: true });
+  await fs.mkdir(path.dirname(metadata.filePath), { recursive: true });
 
+  // Save the actual CSV file
+  await fs.writeFile(metadata.filePath, content, "utf-8");
+
+  // Update the metadata JSON registry
   let existing: Record<string, DatasetMetadata> = {};
 
   try {
     const raw = await fs.readFile(METADATA_FILE, "utf-8");
     existing = JSON.parse(raw);
   } catch {
-// file does not exist yet
+    // file does not exist yet
   }
 
   existing[metadata.datasetId] = metadata;
