@@ -102,26 +102,30 @@ STRICT CODE RULES:
 1. Variable "df" is pre-loaded with the CSV data
 2. Use ONLY column names from DATASET SCHEMA above - do NOT invent columns
 3. Output MUST be: print(json.dumps(result))
-4. For DataFrame results: .to_dict(orient="records")
-5. For Series results: .to_dict() 
+4. For DataFrame results: .reset_index().to_dict(orient="records") - ALWAYS reset_index() to preserve group keys!
+5. For Series results: .reset_index().to_dict(orient="records") - converts to DataFrame with index as column
 6. For single values: {"value": float(x)}
 7. ONLY imports allowed: pandas, numpy, json (already imported)
 8. NO: matplotlib, os, sys, subprocess, open(), eval(), exec()
-9. Groupby MUST aggregate before .nlargest()/.to_dict()
+9. Groupby results MUST use .reset_index() to keep group names in output
 
 COLUMN NAMES TO USE (copy exactly):
 ${availableColumns.map((c) => `"${c}"`).join(', ')}
 
 WORKING EXAMPLES:
-# Top N by group (CORRECT):
-result = df.groupby('${availableColumns[0]}')['${numericColumns[0] || availableColumns[1]}'].sum().nlargest(5).to_dict()
-print(json.dumps(result))
+# Groupby with multiple columns - ALWAYS use reset_index():
+result = df.groupby('${availableColumns[0]}')[['${numericColumns[0] || availableColumns[1]}']].sum().reset_index().to_dict(orient='records')
+print(json.dumps(result))  # Output: [{"${availableColumns[0]}": "A", "${numericColumns[0] || availableColumns[1]}": 100}, ...]
 
-# Total calculation:
+# Top N by group - reset_index() preserves group names:
+result = df.groupby('${availableColumns[0]}')['${numericColumns[0] || availableColumns[1]}'].sum().nlargest(5).reset_index().to_dict(orient='records')
+print(json.dumps(result))  # Output: [{"${availableColumns[0]}": "A", "${numericColumns[0] || availableColumns[1]}": 100}, ...]
+
+# Total calculation (single value):
 result = {"value": float(df['${numericColumns[0] || availableColumns[0]}'].sum())}
 print(json.dumps(result))
 
-# Filtered aggregation:
+# Filtered rows:
 filtered = df[df['${availableColumns[0]}'] == df['${availableColumns[0]}'].iloc[0]]
 result = filtered.to_dict(orient="records")[:10]
 print(json.dumps(result))

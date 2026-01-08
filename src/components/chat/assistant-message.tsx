@@ -4,17 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
-// import {
-//   BarChart,
-//   Bar,
-//   LineChart,
-//   Line,
-//   XAxis,
-//   YAxis,
-//   CartesianGrid,
-//   Tooltip,
-//   ResponsiveContainer,
-// } from 'recharts';
+import { ConfigurableChart, NumberDisplay, DataTable } from '@/components/chart/configurable-chart';
 
 interface Message {
   id: string;
@@ -27,11 +17,14 @@ interface Message {
     codeOutput: string;
     success?: boolean;
     chartType?: string;
-    chartData?: any;
+    chartData?: Record<string, unknown>[];
+    chartConfig?: { xKey?: string; yKey?: string };
+    displayType?: string;  // 'number', 'table', 'bar', 'line', etc.
     explanation?: string;
     columns?: string[];
     aggregations?: string[];
     intent?: string;
+    result?: unknown;
   };
 }
 
@@ -39,29 +32,10 @@ interface AssistantMessageProps {
   message: Message;
 }
 
-// const COLORS = [
-//   'hsl(var(--color-chart-1))',
-//   'hsl(var(--color-chart-2))',
-//   'hsl(var(--color-chart-3))',
-//   'hsl(var(--color-chart-4))',
-//   'hsl(var(--color-chart-5))',
-// ];
-
-// const getChartColor = (colorIndex: number) => {
-//   const colors = [
-//     '#6d5fd1', // chart-1 (blue-purple)
-//     '#4d9fcc', // chart-2 (cyan)
-//     '#6db366', // chart-3 (green)
-//     '#c4a034', // chart-4 (gold)
-//     '#a6d654', // chart-5 (lime)
-//   ];
-//   return colors[colorIndex % colors.length];
-// };
-
 export function AssistantMessage({ message }: AssistantMessageProps) {
   const [expandedCode, setExpandedCode] = useState(true);
   const [expandedOutput, setExpandedOutput] = useState(true);
-  // const [expandedChart, setExpandedChart] = useState(true);
+  const [expandedChart, setExpandedChart] = useState(true);
   const [expandedExplainability, setExpandedExplainability] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedOutput, setCopiedOutput] = useState(false);
@@ -76,7 +50,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
         setCopiedOutput(true);
         setTimeout(() => setCopiedOutput(false), 1500);
       }
-    } catch (e) {
+    } catch {
       // no-op on copy failure
     }
   };
@@ -125,8 +99,17 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
                 className="text-foreground flex items-center gap-2 text-sm font-semibold"
                 aria-label="Toggle code"
               >
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M9.4 16.6L4.8 12l4.6-4.6M14.6 16.6l4.6-4.6-4.6-4.6" stroke="currentColor" strokeWidth="2" fill="none" />
+                <svg
+                  className="h-4 w-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M9.4 16.6L4.8 12l4.6-4.6M14.6 16.6l4.6-4.6-4.6-4.6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    fill="none"
+                  />
                 </svg>
                 Python Code
                 {expandedCode ? (
@@ -140,7 +123,11 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
                 className="text-foreground/80 hover:text-foreground inline-flex items-center gap-1 text-xs"
                 aria-label="Copy code"
               >
-                {copiedCode ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copiedCode ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
               </button>
             </div>
             {expandedCode && (
@@ -169,7 +156,11 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
                 className="flex items-center gap-2 text-sm font-semibold"
                 aria-label="Toggle output"
               >
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="h-4 w-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                 </svg>
                 Execution Output
@@ -180,16 +171,22 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
                 )}
               </button>
               <button
-                onClick={() => handleCopy(message.analysis!.codeOutput, 'output')}
+                onClick={() =>
+                  handleCopy(message.analysis!.codeOutput, 'output')
+                }
                 className="text-foreground/80 hover:text-foreground inline-flex items-center gap-1 text-xs"
                 aria-label="Copy output"
               >
-                {copiedOutput ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copiedOutput ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
               </button>
             </div>
             {expandedOutput && (
               <div className="p-4">
-                <pre className="bg-muted text-foreground overflow-x-auto rounded p-3 font-mono text-xs break-words whitespace-pre-wrap">
+                <pre className="bg-muted text-foreground overflow-x-auto rounded p-3 font-mono text-xs wrap-break-word whitespace-pre-wrap">
                   <code>{message.analysis.codeOutput}</code>
                 </pre>
               </div>
@@ -197,22 +194,26 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
           </Card>
         )}
 
-        {/* Chart Visualization - Recharts disabled for now */}
-        {/* {message.analysis.chartData && (
+        {/* Visualization Section - Based on recommended chart type */}
+        {message.analysis.success !== false && message.analysis.displayType && (
           <Card className="bg-card border-border overflow-hidden border">
             <button
               onClick={() => setExpandedChart(!expandedChart)}
               className="bg-muted/50 hover:bg-muted/70 border-border flex w-full items-center justify-between border-b px-4 py-3 transition-colors"
             >
               <span className="text-foreground flex items-center gap-2 text-sm font-semibold">
-                <svg
-                  className="h-4 w-4"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                </svg>
-                Visualization
+                {message.analysis.displayType === 'number' ? (
+                  <span className="text-lg">📊</span>
+                ) : message.analysis.displayType === 'table' ? (
+                  <span className="text-lg">📋</span>
+                ) : (
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M5 9.2h3V19H5V9.2zM10.6 5h2.8v14h-2.8V5zm5.6 8H19v6h-2.8v-6z"/>
+                  </svg>
+                )}
+                {message.analysis.displayType === 'number' ? 'Result' : 
+                 message.analysis.displayType === 'table' ? 'Data Table' : 
+                 `${message.analysis.displayType.charAt(0).toUpperCase() + message.analysis.displayType.slice(1)} Chart`}
               </span>
               {expandedChart ? (
                 <ChevronUp className="h-4 w-4" />
@@ -222,87 +223,39 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
             </button>
             {expandedChart && (
               <div className="p-4">
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    {message.analysis.chartType === 'line' ? (
-                      <LineChart
-                        data={message.analysis.chartData.datasets.flatMap(
-                          (dataset: any) =>
-                            dataset.data.map((value: number, i: number) => ({
-                              name: message.analysis.chartData.labels[i],
-                              value,
-                            }))
-                        )}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="hsl(var(--color-border))"
-                        />
-                        <XAxis
-                          dataKey="name"
-                          stroke="hsl(var(--color-muted-foreground))"
-                          style={{ fontSize: '12px' }}
-                        />
-                        <YAxis
-                          stroke="hsl(var(--color-muted-foreground))"
-                          style={{ fontSize: '12px' }}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--color-background))',
-                            border: '1px solid hsl(var(--color-border))',
-                          }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="value"
-                          stroke={getChartColor(0)}
-                          strokeWidth={3}
-                          dot={false}
-                          isAnimationActive={true}
-                        />
-                      </LineChart>
-                    ) : (
-                      <BarChart
-                        data={message.analysis.chartData.datasets[0].data.map(
-                          (value: number, i: number) => ({
-                            name: message.analysis.chartData.labels[i],
-                            value,
-                          })
-                        )}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="hsl(var(--color-border))"
-                        />
-                        <XAxis
-                          dataKey="name"
-                          stroke="hsl(var(--color-muted-foreground))"
-                          style={{ fontSize: '12px' }}
-                        />
-                        <YAxis
-                          stroke="hsl(var(--color-muted-foreground))"
-                          style={{ fontSize: '12px' }}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--color-background))',
-                            border: '1px solid hsl(var(--color-border))',
-                          }}
-                        />
-                        <Bar
-                          dataKey="value"
-                          fill={getChartColor(0)}
-                          radius={[4, 4, 0, 0]}
-                        />
-                      </BarChart>
-                    )}
-                  </ResponsiveContainer>
-                </div>
+                {/* Single Number Display */}
+                {message.analysis.displayType === 'number' && message.analysis.result != null && (
+                  <NumberDisplay 
+                    value={
+                      typeof message.analysis.result === 'object' && 
+                      message.analysis.result !== null &&
+                      'value' in message.analysis.result
+                        ? Number((message.analysis.result as { value: number }).value)
+                        : Number(message.analysis.result)
+                    }
+                    label={message.analysis.summary}
+                  />
+                )}
+
+                {/* Data Table Display */}
+                {message.analysis.displayType === 'table' && message.analysis.chartData && (
+                  <DataTable data={message.analysis.chartData} maxRows={15} />
+                )}
+
+                {/* Chart Display */}
+                {['bar', 'line', 'area', 'pie', 'scatter'].includes(message.analysis.displayType) && 
+                 message.analysis.chartData && (
+                  <ConfigurableChart
+                    type={message.analysis.displayType as 'bar' | 'line' | 'area' | 'pie' | 'scatter'}
+                    data={message.analysis.chartData}
+                    config={message.analysis.chartConfig}
+                    height={280}
+                  />
+                )}
               </div>
             )}
           </Card>
-        )} */}
+        )}
 
         {/* Explainability Section */}
         {message.analysis.explanation && (

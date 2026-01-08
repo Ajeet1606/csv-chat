@@ -3,6 +3,7 @@ import { generatePythonCode } from '@/lib/llm-service';
 import { getDatasetMetadata } from '@/lib/csv-service';
 import { executePythonCode } from '@/lib/python-executor';
 import { sanitizeCode } from '@/lib/code-sanitizer';
+import { recommendChart, normalizeDataForChart } from '@/lib/chart-recommender';
 
 export async function POST(request: Request) {
   try {
@@ -76,6 +77,15 @@ export async function POST(request: Request) {
       });
     }
 
+    // Analyze the output and recommend chart type
+    const chartRec = recommendChart(execution.result);
+    const chartData = normalizeDataForChart(execution.result, chartRec.chartType);
+
+    console.log('=== Chart Recommendation ===');
+    console.log(`Type: ${chartRec.chartType} (${chartRec.confidence})`);
+    console.log(`Reason: ${chartRec.reason}`);
+    console.log('============================');
+
     return NextResponse.json({
       success: true,
       analysis: {
@@ -88,6 +98,13 @@ export async function POST(request: Request) {
         intent: generation.intent,
         columns: generation.columns,
         aggregations: generation.aggregations,
+        // Chart recommendation based on actual output
+        chartType: chartRec.chartType !== 'table' && chartRec.chartType !== 'number' ? chartRec.chartType : undefined,
+        chartConfidence: chartRec.confidence,
+        chartReason: chartRec.reason,
+        chartData: chartData?.data,
+        chartConfig: chartData ? { xKey: chartData.xKey, yKey: chartData.yKey } : undefined,
+        displayType: chartRec.chartType, // 'number', 'table', 'bar', 'line', etc.
       },
     });
   } catch (error) {
