@@ -39,8 +39,11 @@ export async function POST(request: Request) {
           pythonCode: generation.code,
           codeOutput: `Code validation failed: ${sanitization.errors.join(', ')}`,
           explanation:
-            'The generated code contains unsafe patterns and was blocked.',
+            generation.explanation || 'The generated code contains unsafe patterns and was blocked.',
           executionTime: 0,
+          intent: generation.intent,
+          columns: generation.columns,
+          aggregations: generation.aggregations,
         },
       });
     }
@@ -64,8 +67,11 @@ export async function POST(request: Request) {
           summary: generation.summary,
           pythonCode: generation.code,
           codeOutput: execution.error || 'Unknown error',
-          explanation: execution.stderr || 'No additional details available',
+          explanation: generation.explanation || execution.stderr || 'No additional details available',
           executionTime: execution.executionTime,
+          intent: generation.intent,
+          columns: generation.columns,
+          aggregations: generation.aggregations,
         },
       });
     }
@@ -76,9 +82,12 @@ export async function POST(request: Request) {
         summary: generation.summary,
         pythonCode: generation.code,
         codeOutput: JSON.stringify(execution.result, null, 2),
-        explanation: `Execution completed in ${execution.executionTime}ms`,
+        explanation: generation.explanation ? `${generation.explanation} — Executed in ${execution.executionTime}ms` : `Execution completed in ${execution.executionTime}ms`,
         executionTime: execution.executionTime,
         result: execution.result,
+        intent: generation.intent,
+        columns: generation.columns,
+        aggregations: generation.aggregations,
       },
     });
   } catch (error) {

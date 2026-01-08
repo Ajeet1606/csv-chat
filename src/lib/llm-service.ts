@@ -51,6 +51,10 @@ export async function generateQuestions(metadata: DatasetMetadata): Promise<stri
 export interface CodeGenerationResult {
   code: string;
   summary: string;
+  intent?: string;
+  explanation?: string;
+  columns?: string[];
+  aggregations?: string[];
 }
 
 export async function generatePythonCode(
@@ -84,9 +88,13 @@ ${metadata.sampleRows
 
 USER QUESTION: "${query}"
 
-RESPOND WITH JSON (no markdown):
+RESPOND WITH JSON (no markdown) using exactly these keys:
 {
   "summary": "1-2 sentence user-friendly description",
+  "intent": "short intent classification like 'top N by group' or 'sum of column'",
+  "columns": ["list", "of", "columns", "used"],
+  "aggregations": ["sum", "mean", "count"],
+  "explanation": "1-2 sentence explanation of the plan",
   "code": "complete Python code as a single string"
 }
 
@@ -132,8 +140,44 @@ Generate the response:`;
     console.log(content);
     console.log('======================');
 
+    // Helpers to extract columns and aggregations from code as a fallback
+    const extractAnalysisFromCode = (codeText: string, allowedColumns: string[]) => {
+      const colSet = new Set<string>();
+      const aggSet = new Set<string>();
+
+      // Match df['col'] and df["col"] patterns
+      const bracketColRegex = /df\s*\[\s*['\"]([^'\"]+)['\"]\s*\]/g;
+      let m: RegExpExecArray | null;
+      while ((m = bracketColRegex.exec(codeText)) !== null) {
+        const col = m[1];
+        if (allowedColumns.includes(col)) colSet.add(col);
+      }
+
+      // Match groupby('col') or groupby(["col"]) patterns
+      const groupbyRegex = /groupby\s*\(\s*['\"]([^'\"]+)['\"]\s*\)|groupby\s*\(\s*\[\s*['\"]([^'\"]+)['\"]/g;
+      while ((m = groupbyRegex.exec(codeText)) !== null) {
+        const col = m[1] || m[2];
+        if (col && allowedColumns.includes(col)) colSet.add(col);
+      }
+
+      // Simple aggregation keyword detection
+      const aggKeywords = [
+        'sum', 'mean', 'median', 'min', 'max', 'count', 'std', 'nlargest', 'nsmallest',
+        'agg', 'size', 'unique', 'nunique', 'sort_values'
+      ];
+      for (const kw of aggKeywords) {
+        const re = new RegExp(`\\.${kw}\\s*\(`);
+        if (re.test(codeText)) aggSet.add(kw);
+      }
+
+      return {
+        columns: Array.from(colSet),
+        aggregations: Array.from(aggSet)
+      };
+    };
+
     // Try to parse as JSON first
-    let parsedResponse: { summary?: string; code?: string } = {};
+    let parsedResponse: { summary?: string; code?: string; intent?: string; explanation?: string; columns?: string[]; aggregations?: string[] } = {};
     try {
       // Remove markdown fences if present
       const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -164,13 +208,40 @@ Generate the response:`;
       parsedResponse.summary = summaryMatch
         ? summaryMatch[1].trim()
         : 'Analyzing your data';
+
+      // Fallback analysis extraction from code
+      if (parsedResponse.code) {
+        const fallback = extractAnalysisFromCode(parsedResponse.code, availableColumns);
+        parsedResponse.columns = fallback.columns;
+        parsedResponse.aggregations = fallback.aggregations;
+      }
     }
 
     const code = parsedResponse.code || '';
     const summary = parsedResponse.summary || 'Analyzing your data';
+    const intent = parsedResponse.intent || undefined;
+    const explanation = parsedResponse.explanation || undefined;
+    const columns = parsedResponse.columns || extractAnalysisFromCode(code, availableColumns).columns;
+    const aggregations = parsedResponse.aggregations || extractAnalysisFromCode(code, availableColumns).aggregations;
 
     console.log('=== Extracted Summary ===');
     console.log(summary);
+    if (intent) {
+      console.log('=== Extracted Intent ===');
+      console.log(intent);
+    }
+    if (explanation) {
+      console.log('=== Extracted Explanation ===');
+      console.log(explanation);
+    }
+    if (columns && columns.length) {
+      console.log('=== Columns Used ===');
+      console.log(columns.join(', '));
+    }
+    if (aggregations && aggregations.length) {
+      console.log('=== Aggregations Detected ===');
+      console.log(aggregations.join(', '));
+    }
     console.log('=== Extracted Code ===');
     console.log(code);
     console.log('========================');
@@ -178,6 +249,10 @@ Generate the response:`;
     return {
       code,
       summary,
+      intent,
+      explanation,
+      columns,
+      aggregations,
     };
   } catch (error) {
     console.error('LLM code generation failed:', error);
