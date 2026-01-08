@@ -1,0 +1,10 @@
+services:
+  # Python sandbox image for secure code execution
+  # Build this before running the Next.js app
+  python-sandbox:
+    build:
+      context: ./docker/python-sandbox
+      dockerfile: Dockerfile
+    image: csv-chat-python-sandbox:latest
+    # This service just builds the image, it won't run continuously
+    command: "echo 'Python sandbox image built successfully'"
