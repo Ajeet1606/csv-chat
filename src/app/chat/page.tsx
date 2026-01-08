@@ -22,6 +22,7 @@ interface AnalysisResult {
   summary: string;
   pythonCode: string;
   codeOutput: string;
+  success?: boolean;
   chartType?: string;
   chartData?: any;
   explanation?: string;
@@ -117,13 +118,26 @@ export default function ChatPage() {
 
       const data = await response.json();
 
-      if (data.success && data.analysis) {
+      // Render assistant message for both success and failure, when analysis is present
+      if (data.analysis) {
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: 'assistant',
-          content: data.analysis.summary,
+          content:
+            data.analysis.summary ||
+            (data.success ? 'Analysis completed' : 'Analysis failed'),
           timestamp: new Date(),
-          analysis: data.analysis,
+          analysis: { ...data.analysis, success: data.success },
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+      } else if (!data.success) {
+        // Fallback in case API returns an error structure without analysis
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'assistant',
+          content:
+            'The analysis failed. Please try refining your question or verifying column names.',
+          timestamp: new Date(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
       }
@@ -257,12 +271,14 @@ export default function ChatPage() {
                 <div className="mb-4 rounded-lg bg-yellow-500/10 p-3 text-xs text-yellow-600 dark:text-yellow-400">
                   <span className="font-semibold">Note:</span> {processingError}
                   <br />
-                  <span className="opacity-80">Using default questions instead.</span>
+                  <span className="opacity-80">
+                    Using default questions instead.
+                  </span>
                 </div>
               )}
 
-              <SuggestedQuestions 
-                onSelect={handleSendMessage} 
+              <SuggestedQuestions
+                onSelect={handleSendMessage}
                 questions={suggestedQuestions}
               />
             </div>
@@ -278,7 +294,7 @@ export default function ChatPage() {
 
           {isLoading && (
             <div className="flex gap-3">
-              <div className="bg-primary/10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg">
+              <div className="bg-primary/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
                 <Loader2 className="text-primary h-4 w-4 animate-spin" />
               </div>
               <div className="flex-1 space-y-2">
@@ -294,7 +310,7 @@ export default function ChatPage() {
         {/* Input Area */}
         <div className="border-border bg-background/95 border-t p-4 backdrop-blur-sm sm:p-6">
           <div className="mx-auto max-w-4xl space-y-3">
-            <div className="flex gap-2 items-end">
+            <div className="flex items-end gap-2">
               <Textarea
                 ref={inputRef}
                 value={input}
@@ -307,7 +323,7 @@ export default function ChatPage() {
                 }}
                 placeholder="Ask a question... (Shift+Enter for newline)"
                 disabled={isLoading}
-                className="text-sm min-h-[44px] max-h-[200px]"
+                className="max-h-50 min-h-11 text-sm"
               />
               <Button
                 onClick={() => handleSendMessage()}
