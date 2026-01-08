@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { generatePythonCode } from '@/lib/llm-service';
 import { getDatasetMetadata } from '@/lib/csv-service';
 import { executePythonCode } from '@/lib/python-executor';
+import { sanitizeCode } from '@/lib/code-sanitizer';
 
 export async function POST(request: Request) {
   try {
@@ -26,10 +27,34 @@ export async function POST(request: Request) {
     // Generate Python code for the query
     const generation = await generatePythonCode(message, metadata);
 
-    // Execute the code in a sandboxed Docker container
+    // After generating code, before executing:
+    const availableColumns = metadata.columns.map((c) => c.name);
+    const sanitization = sanitizeCode(generation.code, availableColumns);
+
+    if (!sanitization.isValid) {
+      return NextResponse.json({
+        success: false,
+        analysis: {
+          summary: generation.summary,
+          pythonCode: generation.code,
+          codeOutput: `Code validation failed: ${sanitization.errors.join(', ')}`,
+          explanation:
+            'The generated code contains unsafe patterns and was blocked.',
+          executionTime: 0,
+        },
+      });
+    }
+
+    // Log warnings if any
+    if (sanitization.warnings.length > 0) {
+      console.warn('Code sanitization warnings:', sanitization.warnings);
+    }
+
+    // Execute the sanitized code
     const execution = await executePythonCode(
-      generation.code,
-      metadata.filePath
+      sanitization.sanitizedCode,
+      metadata.filePath,
+      metadata.columns
     );
 
     if (!execution.success) {

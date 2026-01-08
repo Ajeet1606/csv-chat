@@ -1,5 +1,6 @@
 import Docker from 'dockerode';
 import * as fs from 'fs';
+import { ColumnMetadata } from './csv-service';
 
 const docker = new Docker();
 
@@ -24,7 +25,8 @@ export interface ExecutionResult {
  */
 export async function executePythonCode(
   code: string,
-  csvFilePath: string
+  csvFilePath: string,
+  columns: ColumnMetadata[]
 ): Promise<ExecutionResult> {
   const startTime = Date.now();
 
@@ -48,16 +50,42 @@ export async function executePythonCode(
   try {
     // Prepend code to load CSV into df
     const fullCode = `import warnings
-  warnings.filterwarnings("ignore")
-  import pandas as pd
-  import numpy as np
-  import json
+warnings.filterwarnings("ignore")
+import pandas as pd
+import numpy as np
+import json
 
-  # Load CSV file into dataframe
-  df = pd.read_csv('/data/input.csv')
+# Load CSV file into dataframe
+df = pd.read_csv('/data/input.csv')
 
-# User's generated code
-${code}
+# Available columns for error messages
+_AVAILABLE_COLUMNS = ${JSON.stringify(columns.map((c) => c.name))}
+
+def _safe_to_json(obj):
+    if isinstance(obj, pd.DataFrame):
+        return obj.to_dict(orient='records')
+    elif isinstance(obj, pd.Series):
+        try:
+            return obj.to_dict()
+        except:
+            return obj.reset_index().to_dict(orient='records')
+    elif hasattr(obj, 'item'):  # numpy scalar
+        return obj.item()
+    elif isinstance(obj, dict):
+        return {str(k): _safe_to_json(v) for k, v in obj.items()}
+    return obj
+
+try:
+${code
+  .split('\n')
+  .map((line) => '    ' + line)
+  .join('\n')}
+except KeyError as e:
+    print(json.dumps({"error": f"Column not found: {e}. Available: {list(df.columns)}"}))
+except TypeError as e:
+    print(json.dumps({"error": f"Type error: {e}"}))
+except Exception as e:
+    print(json.dumps({"error": f"{type(e).__name__}: {e}"}))
 `;
 
     console.log('=== Full Code to Execute ===');

@@ -65,75 +65,60 @@ export async function generatePythonCode(
       )
       .join('\n');
 
-    const prompt = `
-You are a senior data analyst generating SAFE, DETERMINISTIC Python code
-that will be executed inside a restricted Docker sandbox.
+    const availableColumns = metadata.columns.map((c) => c.name);
+    const numericColumns = metadata.columns
+      .filter((c) => c.type === 'number')
+      .map((c) => c.name);
 
-Context:
-- Dataset: ${metadata.fileName}
-- A CSV file has already been loaded into a pandas DataFrame named "df"
-- Available columns:
+    const prompt = `
+You are a senior data analyst generating SAFE Python code for a Docker sandbox.
+
+DATASET SCHEMA (use ONLY these exact column names):
 ${columnsDescription}
 
-Sample rows (for understanding only — do NOT hardcode values):
-${metadata.sampleRows.map((row) => row.join(', ')).join('\n')}
+Sample data:
+${metadata.sampleRows
+  .slice(0, 3)
+  .map((row) => row.join(', '))
+  .join('\n')}
 
-User question:
-"${query}"
+USER QUESTION: "${query}"
 
-You must respond with a JSON object containing:
-1. "summary": A brief 1-2 sentence description of what the analysis does (user-friendly, no technical terms)
-2. "code": The complete Python code to execute
-
-PYTHON CODE REQUIREMENTS:
-1. Use ONLY the dataframe variable named "df"
-2. Perform ONLY data analysis or transformation
-3. Do NOT generate charts, plots, or visualizations
-4. The final result MUST be printed as JSON to stdout using: print(json.dumps(result))
-5. For tabular results (DataFrame), use: result.to_dict(orient="records")
-6. For Series results with simple keys, use: result.to_dict()
-7. For single values, wrap in object: {"value": result}
-8. Use only: pandas, numpy, json
-9. Do NOT import matplotlib, seaborn, os, sys, subprocess, or any network libraries
-10. Do NOT read or write any files
-
-CRITICAL NOTES:
-- Groupby operations MUST be aggregated (.sum(), .mean(), .count(), etc.) before using .nlargest() or .to_dict()
-- Always ensure dictionary keys are JSON-serializable (str, int, float, bool, None only)
-- Test your logic: groupby() -> aggregate() -> sort/filter -> convert to dict
-
-COMMON PATTERNS (use these as templates):
-
-1. Aggregate by group and get top N:
-   result = df.groupby('Region')['Sales'].sum().nlargest(5).to_dict()
-   print(json.dumps(result))
-
-2. Get top N rows from DataFrame:
-   result = df.nlargest(10, 'Revenue')[['Region', 'Product', 'Revenue']].to_dict(orient="records")
-   print(json.dumps(result))
-
-3. Single calculation:
-   result = {"value": float(df['Sales'].sum())}
-   print(json.dumps(result))
-
-4. Multiple aggregations:
-   result = df.groupby('Category').agg({'Sales': 'sum', 'Units': 'mean'}).reset_index().to_dict(orient="records")
-   print(json.dumps(result))
-
-5. Filtering and aggregating:
-   result = df[df['Year'] == 2023].groupby('Region')['Revenue'].sum().to_dict()
-   print(json.dumps(result))
-
-ERROR HANDLING:
-- If the question cannot be answered, code should print: print(json.dumps({"error": "reason"}))
-
-Response format (JSON only, no markdown):
+RESPOND WITH JSON (no markdown):
 {
-  "summary": "Finding the top regions by sales",
-  "code": "import pandas as pd\\nimport json\\n\\nresult = df.groupby('Region')['Sales'].sum().nlargest(5).to_dict()\\nprint(json.dumps(result))"
+  "summary": "1-2 sentence user-friendly description",
+  "code": "complete Python code as a single string"
 }
 
-Now generate the response:`;
+STRICT CODE RULES:
+1. Variable "df" is pre-loaded with the CSV data
+2. Use ONLY column names from DATASET SCHEMA above - do NOT invent columns
+3. Output MUST be: print(json.dumps(result))
+4. For DataFrame results: .to_dict(orient="records")
+5. For Series results: .to_dict() 
+6. For single values: {"value": float(x)}
+7. ONLY imports allowed: pandas, numpy, json (already imported)
+8. NO: matplotlib, os, sys, subprocess, open(), eval(), exec()
+9. Groupby MUST aggregate before .nlargest()/.to_dict()
+
+COLUMN NAMES TO USE (copy exactly):
+${availableColumns.map((c) => `"${c}"`).join(', ')}
+
+WORKING EXAMPLES:
+# Top N by group (CORRECT):
+result = df.groupby('${availableColumns[0]}')['${numericColumns[0] || availableColumns[1]}'].sum().nlargest(5).to_dict()
+print(json.dumps(result))
+
+# Total calculation:
+result = {"value": float(df['${numericColumns[0] || availableColumns[0]}'].sum())}
+print(json.dumps(result))
+
+# Filtered aggregation:
+filtered = df[df['${availableColumns[0]}'] == df['${availableColumns[0]}'].iloc[0]]
+result = filtered.to_dict(orient="records")[:10]
+print(json.dumps(result))
+
+Generate the response:`;
 
     const completion = await openai.chat.completions.create({
       model: 'mistral',
