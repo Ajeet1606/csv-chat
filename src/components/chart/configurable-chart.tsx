@@ -24,7 +24,7 @@ export type ChartType = 'line' | 'area' | 'bar' | 'pie' | 'scatter';
 
 // Color palette for charts
 const COLORS = [
-  'hsl(var(--color-primary))',
+  'var(--color-primary)',
   'hsl(221, 83%, 53%)', // blue
   'hsl(142, 71%, 45%)', // green
   'hsl(38, 92%, 50%)', // amber
@@ -95,11 +95,11 @@ export function ConfigurableChart({
       }}
       labelStyle={{ fontWeight: 600 }}
       cursor={{ fill: 'transparent' }}
-      formatter={(value: any) => [
+      formatter={(value: any, name: any) => [
         typeof value === 'number' 
           ? value.toLocaleString(undefined, { maximumFractionDigits: 2 }) 
           : value,
-        undefined
+        name
       ]}
     />
   );
@@ -132,6 +132,7 @@ export function ConfigurableChart({
             <XAxis {...xAxisProps} />
             <YAxis {...yAxisProps} />
             {tooltip}
+            <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '12px', paddingBottom: '10px' }} />
             {config?.seriesKeys && config.seriesKeys.length > 0 ? (
               config.seriesKeys.map((key, index) => (
                 <Bar
@@ -145,7 +146,7 @@ export function ConfigurableChart({
             ) : (
               <Bar
                 dataKey={yKey}
-                fill="hsl(var(--color-primary))"
+                fill="var(--color-primary)"
                 radius={[4, 4, 0, 0]}
                 maxBarSize={50}
               />
@@ -160,6 +161,7 @@ export function ConfigurableChart({
             <XAxis {...xAxisProps} />
             <YAxis {...yAxisProps} />
             {tooltip}
+            <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '12px', paddingBottom: '10px' }} />
              {config?.seriesKeys && config.seriesKeys.length > 0 ? (
               config.seriesKeys.map((key, index) => (
                 <Line
@@ -176,9 +178,9 @@ export function ConfigurableChart({
               <Line
                 type="monotone"
                 dataKey={yKey}
-                stroke="hsl(var(--color-primary))"
+                stroke="var(--color-primary)"
                 strokeWidth={2}
-                dot={{ fill: 'hsl(var(--color-primary))', strokeWidth: 0, r: 3 }}
+                dot={{ fill: 'var(--color-primary)', strokeWidth: 0, r: 3 }}
                 activeDot={{ r: 5 }}
               />
             )}
@@ -192,6 +194,7 @@ export function ConfigurableChart({
             <XAxis {...xAxisProps} />
             <YAxis {...yAxisProps} />
             {tooltip}
+            <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '12px', paddingBottom: '10px' }} />
             {config?.seriesKeys && config.seriesKeys.length > 0 ? (
               config.seriesKeys.map((key, index) => (
                 <Area
@@ -208,8 +211,8 @@ export function ConfigurableChart({
               <Area
                 type="monotone"
                 dataKey={yKey}
-                stroke="hsl(var(--color-primary))"
-                fill="hsl(var(--color-primary))"
+                stroke="var(--color-primary)"
+                fill="var(--color-primary)"
                 fillOpacity={0.15}
                 strokeWidth={2}
               />
@@ -250,9 +253,10 @@ export function ConfigurableChart({
             <XAxis {...xAxisProps} type="number" dataKey={xKey} name={xKey} />
             <YAxis {...yAxisProps} type="number" dataKey={yKey} name={yKey} />
             {tooltip}
+            <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '12px', paddingBottom: '10px' }} />
             <Scatter
               data={chartData}
-              fill="hsl(var(--color-primary))"
+              fill="var(--color-primary)"
               opacity={0.7}
             />
           </ScatterChart>
