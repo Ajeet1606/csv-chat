@@ -31,17 +31,14 @@ export async function POST(request: Request) {
         analysis: {
           summary: analysis.summary,
           pythonCode: analysis.code,
-          codeOutput: analysis.explanation,
-          explanation: analysis.explanation,
+          codeOutput: analysis.summary,
           executionTime: analysis.executionTime,
-          intent: analysis.intent,
         },
       });
     }
 
     console.log('=== Analysis Complete ===');
     console.log(`Summary: ${analysis.summary}`);
-    console.log(`Intent: ${analysis.intent}`);
     console.log(`Chart: ${analysis.chartType || 'none'}`);
     console.log('========================');
 
@@ -51,10 +48,8 @@ export async function POST(request: Request) {
         summary: analysis.summary,
         pythonCode: analysis.code,
         codeOutput: JSON.stringify(analysis.result, null, 2),
-        explanation: analysis.explanation,
         executionTime: analysis.executionTime,
         result: analysis.result,
-        intent: analysis.intent,
         // Chart recommendation
         chartType: analysis.chartType,
         chartData: analysis.chartData,

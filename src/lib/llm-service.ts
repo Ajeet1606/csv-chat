@@ -29,16 +29,12 @@ export interface SimpleCodeResult {
 
 export interface SummaryResult {
   summary: string;
-  intent: string;
-  explanation: string;
 }
 
 export interface AnalysisResult {
   success: boolean;
   code: string;
   summary: string;
-  intent: string;
-  explanation: string;
   result?: unknown;
   executionTime: number;
   chartType?: string;
@@ -61,14 +57,7 @@ function cleanCodeResponse(code: string): string {
     .trim();
 }
 
-function classifyIntent(code: string): string {
-  if (/\.groupby\s*\(/.test(code)) return 'grouping';
-  if (/\.nlargest\s*\(|\.nsmallest\s*\(/.test(code)) return 'ranking';
-  if (/\.sum\s*\(|\.mean\s*\(|\.agg\s*\(/.test(code)) return 'aggregation';
-  if (/\[.*==.*\]/.test(code)) return 'filtering';
-  if (/\.sort_values\s*\(/.test(code)) return 'sorting';
-  return 'analysis';
-}
+
 
 function sanitizeExecResult(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -148,6 +137,7 @@ Rules:
 5. For single values, use {"value": x, "label": "..."}.
 6. NO print(), NO .to_dict() (handled by system), NO plotting.
 7. Use pd.to_datetime() if needed.
+8. For rolling/mean, select ONLY numeric columns (e.g. df[['col']].rolling...).
 
 Output ONLY the code.`;
 
@@ -191,14 +181,10 @@ Result Preview: ${preview}`;
     const summary = completion.choices[0]?.message?.content?.trim() || 'Analysis completed.';
     return {
       summary,
-      intent: classifyIntent(code),
-      explanation: `Executed in ${executionTime}ms. ${summary}`,
     };
   } catch {
     return {
       summary: 'Analysis completed',
-      intent: 'analysis',
-      explanation: `Executed in ${executionTime}ms`,
     };
   }
 }
@@ -216,8 +202,6 @@ export async function analyzeDataset(
       success: false,
       code: '',
       summary: 'Failed to generate code',
-      intent: 'error',
-      explanation: 'LLM failed to produce valid code.',
       executionTime: 0,
     };
   }
@@ -230,8 +214,6 @@ export async function analyzeDataset(
       success: false,
       code: gen.code,
       summary: 'Invalid code generated',
-      intent: 'error',
-      explanation: `Security/Validation Checks Failed: ${sanitization.errors.join(', ')}`,
       executionTime: 0,
     };
   }
@@ -245,9 +227,7 @@ export async function analyzeDataset(
       success: false,
       code: gen.code,
       summary: 'Code execution failed',
-      intent: 'error',
       // exec.error contains text like "Type error: ..."
-      explanation: exec.error || exec.stderr || 'Unknown runtime error',
       executionTime: exec.executionTime,
     };
   }
@@ -271,8 +251,6 @@ export async function analyzeDataset(
     success: true,
     code: gen.code,
     summary: summary.summary,
-    intent: summary.intent,
-    explanation: summary.explanation,
     result: safeResult,
     executionTime: exec.executionTime,
     chartType: chartRec.chartType,

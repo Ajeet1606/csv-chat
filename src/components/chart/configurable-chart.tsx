@@ -47,6 +47,7 @@ export interface ConfigurableChartProps {
   data: Record<string, unknown>[];
   config?: ChartConfig;
   height?: number;
+  id?: string;
 }
 
 /**
@@ -58,6 +59,7 @@ export function ConfigurableChart({
   data,
   config,
   height = 280,
+  id,
 }: ConfigurableChartProps) {
   if (!data || data.length === 0) return null;
 
@@ -92,6 +94,13 @@ export function ConfigurableChart({
         fontSize: '12px',
       }}
       labelStyle={{ fontWeight: 600 }}
+      cursor={{ fill: 'transparent' }}
+      formatter={(value: any) => [
+        typeof value === 'number' 
+          ? value.toLocaleString(undefined, { maximumFractionDigits: 2 }) 
+          : value,
+        undefined
+      ]}
     />
   );
 
@@ -112,7 +121,7 @@ export function ConfigurableChart({
   };
 
   return (
-    <div style={{ width: '100%', height }}>
+    <div id={id} style={{ width: '100%', height }}>
       <ResponsiveContainer width="100%" height="100%">
         {type === 'bar' ? (
           <BarChart

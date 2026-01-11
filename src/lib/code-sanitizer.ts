@@ -210,15 +210,11 @@ try:
 ${indentedCode}
 except KeyError as e:
     result = {"error": f"Column not found: {e}. Available: {_AVAILABLE_COLUMNS}"}
-    print(json.dumps(result))
 except TypeError as e:
     result = {"error": f"Type error: {e}"}
-    print(json.dumps(result))
 except ValueError as e:
     result = {"error": f"Value error: {e}"}
-    print(json.dumps(result))
 except Exception as e:
     result = {"error": f"{type(e).__name__}: {str(e)}"}
-    print(json.dumps(result))
 `;
 }
