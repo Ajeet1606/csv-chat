@@ -24,6 +24,7 @@ interface AnalysisResult {
   codeOutput: string;
   success?: boolean;
   chartType?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   chartData?: any;
   chartConfig?: { xKey?: string; yKey?: string; seriesKeys?: string[] };
 }
@@ -33,9 +34,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showProfiling, setShowProfiling] = useState(true);
   const [datasetName, setDatasetName] = useState('Untitled Dataset');
-  const [showSuggestions, setShowSuggestions] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -55,17 +54,11 @@ export default function ChatPage() {
       if (parsed.processingError) {
         setProcessingError(parsed.processingError);
       }
+    } else {
+      // If no CSV file info, redirect to home
+      router.push('/');
     }
-  }, []);
-
-  useEffect(() => {
-    // Simulate profiling
-    const timer = setTimeout(() => {
-      setShowProfiling(false);
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -83,13 +76,12 @@ export default function ChatPage() {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
-    setShowSuggestions(false);
     setIsLoading(true);
 
     // Get datasetId from sessionStorage
     const csvFile = sessionStorage.getItem('csvFile');
     let datasetId = '';
-    
+
     if (csvFile) {
       const parsed = JSON.parse(csvFile);
       if (parsed.metadata && parsed.metadata.datasetId) {
@@ -176,12 +168,15 @@ export default function ChatPage() {
       <header className="border-border bg-background/80 sticky top-0 z-50 border-b backdrop-blur-sm">
         <div className="flex items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex flex-1 items-center gap-3">
-            <div className="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold">
-              CSV
+            <div
+              onClick={() => router.push('/')}
+              className="bg-primary text-primary-foreground flex h-9 cursor-pointer items-center justify-center rounded-lg px-0.5 text-sm font-bold transition-opacity hover:opacity-90"
+            >
+              CSVx
             </div>
             <div className="flex-1">
               <h1 className="text-foreground text-sm font-semibold">
-                {datasetName}
+                {datasetName || 'Untitled Dataset'}
               </h1>
               <p className="text-muted-foreground text-xs">
                 {rowCount.toLocaleString()} rows
@@ -229,14 +224,7 @@ export default function ChatPage() {
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Messages Container */}
         <div className="scrollbar-hidden mx-auto w-full max-w-4xl flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
-          {showProfiling && (
-            <div className="text-muted-foreground bg-secondary/50 flex w-fit items-center gap-2 rounded-lg p-3 text-xs">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Profiling dataset...
-            </div>
-          )}
-
-          {messages.length === 0 && !showProfiling && (
+          {messages.length === 0 && (
             <div className="flex flex-col items-center justify-start space-y-6 text-center">
               <div className="space-y-3 pt-4">
                 <div className="bg-primary/10 mx-auto flex h-10 w-10 items-center justify-center rounded-lg">

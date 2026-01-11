@@ -24,7 +24,7 @@ export type ChartType = 'line' | 'area' | 'bar' | 'pie' | 'scatter';
 
 // Color palette for charts
 const COLORS = [
-  'hsl(var(--color-primary))',
+  'var(--color-primary)',
   'hsl(221, 83%, 53%)', // blue
   'hsl(142, 71%, 45%)', // green
   'hsl(38, 92%, 50%)', // amber
@@ -95,11 +95,12 @@ export function ConfigurableChart({
       }}
       labelStyle={{ fontWeight: 600 }}
       cursor={{ fill: 'transparent' }}
-      formatter={(value: any) => [
-        typeof value === 'number' 
-          ? value.toLocaleString(undefined, { maximumFractionDigits: 2 }) 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      formatter={(value: any, name: any) => [
+        typeof value === 'number'
+          ? value.toLocaleString(undefined, { maximumFractionDigits: 2 })
           : value,
-        undefined
+        name,
       ]}
     />
   );
@@ -121,7 +122,7 @@ export function ConfigurableChart({
   };
 
   return (
-    <div id={id} style={{ width: '100%', height }}>
+    <div style={{ width: '100%', height }} id={id}>
       <ResponsiveContainer width="100%" height="100%">
         {type === 'bar' ? (
           <BarChart
@@ -132,6 +133,11 @@ export function ConfigurableChart({
             <XAxis {...xAxisProps} />
             <YAxis {...yAxisProps} />
             {tooltip}
+            <Legend
+              verticalAlign="top"
+              height={36}
+              wrapperStyle={{ fontSize: '12px', paddingBottom: '10px' }}
+            />
             {config?.seriesKeys && config.seriesKeys.length > 0 ? (
               config.seriesKeys.map((key, index) => (
                 <Bar
@@ -145,7 +151,7 @@ export function ConfigurableChart({
             ) : (
               <Bar
                 dataKey={yKey}
-                fill="hsl(var(--color-primary))"
+                fill="var(--color-primary)"
                 radius={[4, 4, 0, 0]}
                 maxBarSize={50}
               />
@@ -160,7 +166,12 @@ export function ConfigurableChart({
             <XAxis {...xAxisProps} />
             <YAxis {...yAxisProps} />
             {tooltip}
-             {config?.seriesKeys && config.seriesKeys.length > 0 ? (
+            <Legend
+              verticalAlign="top"
+              height={36}
+              wrapperStyle={{ fontSize: '12px', paddingBottom: '10px' }}
+            />
+            {config?.seriesKeys && config.seriesKeys.length > 0 ? (
               config.seriesKeys.map((key, index) => (
                 <Line
                   key={key}
@@ -168,7 +179,11 @@ export function ConfigurableChart({
                   dataKey={key}
                   stroke={COLORS[index % COLORS.length]}
                   strokeWidth={2}
-                  dot={{ fill: COLORS[index % COLORS.length], strokeWidth: 0, r: 3 }}
+                  dot={{
+                    fill: COLORS[index % COLORS.length],
+                    strokeWidth: 0,
+                    r: 3,
+                  }}
                   activeDot={{ r: 5 }}
                 />
               ))
@@ -176,9 +191,9 @@ export function ConfigurableChart({
               <Line
                 type="monotone"
                 dataKey={yKey}
-                stroke="hsl(var(--color-primary))"
+                stroke="var(--color-primary)"
                 strokeWidth={2}
-                dot={{ fill: 'hsl(var(--color-primary))', strokeWidth: 0, r: 3 }}
+                dot={{ fill: 'var(--color-primary)', strokeWidth: 0, r: 3 }}
                 activeDot={{ r: 5 }}
               />
             )}
@@ -192,6 +207,11 @@ export function ConfigurableChart({
             <XAxis {...xAxisProps} />
             <YAxis {...yAxisProps} />
             {tooltip}
+            <Legend
+              verticalAlign="top"
+              height={36}
+              wrapperStyle={{ fontSize: '12px', paddingBottom: '10px' }}
+            />
             {config?.seriesKeys && config.seriesKeys.length > 0 ? (
               config.seriesKeys.map((key, index) => (
                 <Area
@@ -208,8 +228,8 @@ export function ConfigurableChart({
               <Area
                 type="monotone"
                 dataKey={yKey}
-                stroke="hsl(var(--color-primary))"
-                fill="hsl(var(--color-primary))"
+                stroke="var(--color-primary)"
+                fill="var(--color-primary)"
                 fillOpacity={0.15}
                 strokeWidth={2}
               />
@@ -250,9 +270,14 @@ export function ConfigurableChart({
             <XAxis {...xAxisProps} type="number" dataKey={xKey} name={xKey} />
             <YAxis {...yAxisProps} type="number" dataKey={yKey} name={yKey} />
             {tooltip}
+            <Legend
+              verticalAlign="top"
+              height={36}
+              wrapperStyle={{ fontSize: '12px', paddingBottom: '10px' }}
+            />
             <Scatter
               data={chartData}
-              fill="hsl(var(--color-primary))"
+              fill="var(--color-primary)"
               opacity={0.7}
             />
           </ScatterChart>
@@ -313,20 +338,23 @@ export function NumberDisplay({
 
 /**
  * Data Table Component
- * For displaying tabular data
+ * For displaying tabular data with pagination
  */
 export function DataTable({
   data,
   maxRows = 20,
+  currentPage = 1,
 }: {
   data: Record<string, unknown>[];
   maxRows?: number;
+  currentPage?: number;
 }) {
   if (!data || data.length === 0) return null;
 
   const columns = Object.keys(data[0]);
-  const displayData = data.slice(0, maxRows);
-  const hasMore = data.length > maxRows;
+  const startIdx = (currentPage - 1) * maxRows;
+  const endIdx = startIdx + maxRows;
+  const displayData = data.slice(startIdx, endIdx);
 
   return (
     <div className="overflow-x-auto">
@@ -355,11 +383,9 @@ export function DataTable({
           ))}
         </tbody>
       </table>
-      {hasMore && (
-        <div className="text-muted-foreground mt-2 text-center text-xs">
-          Showing {maxRows} of {data.length} rows
-        </div>
-      )}
+      <div className="text-muted-foreground mt-2 text-center text-xs">
+        Showing {startIdx + 1}-{Math.min(endIdx, data.length)} of {data.length} rows
+      </div>
     </div>
   );
 }

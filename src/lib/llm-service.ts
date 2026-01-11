@@ -138,6 +138,7 @@ Rules:
 6. NO print(), NO .to_dict() (handled by system), NO plotting.
 7. Use pd.to_datetime() if needed.
 8. For rolling/mean, select ONLY numeric columns (e.g. df[['col']].rolling...).
+9. If using time-based rolling (e.g. '30D'), you MUST sort the index first: .sort_index().
 
 Output ONLY the code.`;
 
