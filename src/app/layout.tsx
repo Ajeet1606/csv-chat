@@ -15,10 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Chat with CSV - Data Analysis Tool',
+  title: 'CSVx - Chat with CSVs',
   description:
     'Upload CSV files and analyze them using natural language conversations',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
