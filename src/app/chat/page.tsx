@@ -54,8 +54,11 @@ export default function ChatPage() {
       if (parsed.processingError) {
         setProcessingError(parsed.processingError);
       }
+    } else {
+      // If no CSV file info, redirect to home
+      router.push('/');
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -165,7 +168,10 @@ export default function ChatPage() {
       <header className="border-border bg-background/80 sticky top-0 z-50 border-b backdrop-blur-sm">
         <div className="flex items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex flex-1 items-center gap-3">
-            <div className="bg-primary text-primary-foreground flex h-9 items-center justify-center rounded-lg px-0.5 text-sm font-bold">
+            <div
+              onClick={() => router.push('/')}
+              className="bg-primary text-primary-foreground flex h-9 cursor-pointer items-center justify-center rounded-lg px-0.5 text-sm font-bold transition-opacity hover:opacity-90"
+            >
               CSVx
             </div>
             <div className="flex-1">
@@ -218,13 +224,6 @@ export default function ChatPage() {
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Messages Container */}
         <div className="scrollbar-hidden mx-auto w-full max-w-4xl flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
-          {/* {showProfiling && (
-            <div className="text-muted-foreground bg-secondary/50 flex w-fit items-center gap-2 rounded-lg p-3 text-xs">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Profiling dataset...
-            </div>
-          )} */}
-
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-start space-y-6 text-center">
               <div className="space-y-3 pt-4">

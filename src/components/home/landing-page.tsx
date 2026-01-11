@@ -49,10 +49,9 @@ export default function LandingPage() {
       <header className="bg-background/80 border-border sticky top-0 z-50 border-b backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
-            <div className="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold">
-              CSV
+            <div className="bg-primary text-primary-foreground flex h-9 items-center justify-center rounded-lg px-0.5 text-sm font-bold">
+              CSVx
             </div>
-            <h1 className="text-foreground text-xl font-bold">Data Analyzer</h1>
           </div>
           <ThemeToggle />
         </div>
