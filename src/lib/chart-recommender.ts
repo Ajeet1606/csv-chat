@@ -346,7 +346,7 @@ export function recommendChart(data: unknown): ChartRecommendation {
 export function normalizeDataForChart(
   data: unknown,
   chartType: ChartType
-): { data: Record<string, unknown>[]; xKey: string; yKey: string } | null {
+): { data: Record<string, unknown>[]; xKey: string; yKey: string; seriesKeys?: string[] } | null {
   if (!data) return null;
 
   // Object map {key: value} -> array [{name: key, value: value}]
@@ -390,6 +390,42 @@ export function normalizeDataForChart(
 
     const xKey = stringKeys[0] || keys[0];
     const yKey = numericKeys[0] || keys[1] || keys[0];
+
+    // If we have a date key (or x-axis key), a string key (category), and a numeric key (value)
+    const dateKey = keys.find(k => /date|time|year|month/i.test(k) && stringKeys.includes(k)) || stringKeys[0];
+    const categoryKey = stringKeys.find(k => k !== dateKey);
+    const valueKey = numericKeys[0];
+
+    // Enable pivoting for line, bar, area charts
+    const multiSeriesTypes: ChartType[] = ['line', 'bar', 'area'];
+
+    if (multiSeriesTypes.includes(chartType) && dateKey && categoryKey && valueKey) {
+      // Pivot data: Group by dateKey, columns are values of categoryKey
+      const pivotedMap = new Map<string, Record<string, unknown>>();
+      const allSeries = new Set<string>();
+
+      records.forEach(row => {
+        const xVal = String(row[dateKey]);
+        const series = String(row[categoryKey]);
+        const val = row[valueKey];
+
+        allSeries.add(series);
+
+        if (!pivotedMap.has(xVal)) {
+          pivotedMap.set(xVal, { [dateKey]: xVal });
+        }
+        const entry = pivotedMap.get(xVal)!;
+        entry[series] = val;
+      });
+
+      const pivotedData = Array.from(pivotedMap.values());
+      return {
+        data: pivotedData,
+        xKey: dateKey,
+        yKey: valueKey, // Primary value key kept for reference
+        seriesKeys: Array.from(allSeries)
+      };
+    }
 
     return { data: records, xKey, yKey };
   }

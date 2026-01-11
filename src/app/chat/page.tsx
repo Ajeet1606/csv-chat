@@ -25,10 +25,7 @@ interface AnalysisResult {
   success?: boolean;
   chartType?: string;
   chartData?: any;
-  explanation?: string;
-  columns?: string[];
-  aggregations?: string[];
-  intent?: string;
+  chartConfig?: { xKey?: string; yKey?: string; seriesKeys?: string[] };
 }
 
 export default function ChatPage() {

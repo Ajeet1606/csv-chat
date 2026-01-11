@@ -55,6 +55,37 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
     }
   };
 
+  const chartId = `chart-${message.id}`;
+
+  const handleDownload = () => {
+    try {
+      const chartElement = document.getElementById(chartId);
+      const svg = chartElement?.querySelector('svg');
+      
+      if (!svg) {
+        console.error('SVG element not found');
+        return;
+      }
+
+      // Serialize SVG to string
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svg);
+      
+      // Create blob and download link
+      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `chart-${message.id}.svg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download chart:', error);
+    }
+  };
+
   if (!message.analysis) {
     return (
       <div className="flex justify-start">
@@ -246,6 +277,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
                 {['bar', 'line', 'area', 'pie', 'scatter'].includes(message.analysis.displayType) && 
                  message.analysis.chartData && (
                   <ConfigurableChart
+                    id={chartId}
                     type={message.analysis.displayType as 'bar' | 'line' | 'area' | 'pie' | 'scatter'}
                     data={message.analysis.chartData}
                     config={message.analysis.chartConfig}
@@ -257,83 +289,17 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
           </Card>
         )}
 
-        {/* Explainability Section */}
-        {message.analysis.explanation && (
-          <Card className="bg-card border-border overflow-hidden border">
-            <button
-              onClick={() => setExpandedExplainability(!expandedExplainability)}
-              className="bg-secondary/50 hover:bg-secondary/70 border-border flex w-full items-center justify-between border-b px-4 py-3 transition-colors"
-            >
-              <span className="text-foreground flex items-center gap-2 text-sm font-semibold">
-                <span className="text-base">🧠</span>
-                Analysis Breakdown
-              </span>
-              {expandedExplainability ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
-            {expandedExplainability && (
-              <div className="space-y-4 p-4">
-                {message.analysis.intent && (
-                  <div className="space-y-1.5">
-                    <label className="text-muted-foreground text-xs font-medium uppercase">
-                      Detected Intent
-                    </label>
-                    <p className="text-foreground bg-secondary/50 rounded-lg p-3 text-sm">
-                      {message.analysis.intent}
-                    </p>
-                  </div>
-                )}
-
-                {message.analysis.columns &&
-                  message.analysis.columns.length > 0 && (
-                    <div className="space-y-1.5">
-                      <label className="text-muted-foreground text-xs font-medium uppercase">
-                        Columns Used
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {message.analysis.columns.map((col) => (
-                          <span
-                            key={col}
-                            className="bg-primary/10 text-primary rounded-full px-2.5 py-1 text-xs font-medium"
-                          >
-                            {col}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                {message.analysis.aggregations &&
-                  message.analysis.aggregations.length > 0 && (
-                    <div className="space-y-1.5">
-                      <label className="text-muted-foreground text-xs font-medium uppercase">
-                        Operations
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {message.analysis.aggregations.map((agg) => (
-                          <span
-                            key={agg}
-                            className="bg-accent/10 text-accent rounded-full px-2.5 py-1 text-xs font-medium"
-                          >
-                            {agg}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-              </div>
-            )}
-          </Card>
-        )}
-
         {/* Download Action */}
         <div>
-          <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2 bg-transparent"
+            onClick={handleDownload}
+            disabled={!['bar', 'line', 'area', 'pie', 'scatter'].includes(message.analysis.displayType || '')}
+          >
             <Download className="h-4 w-4" />
-            Download Results
+            Download Chart
           </Button>
         </div>
       </div>
