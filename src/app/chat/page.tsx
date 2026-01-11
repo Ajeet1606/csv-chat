@@ -25,6 +25,7 @@ interface AnalysisResult {
   success?: boolean;
   chartType?: string;
   chartData?: any;
+  chartConfig?: { xKey?: string; yKey?: string; seriesKeys?: string[] };
   explanation?: string;
   columns?: string[];
   aggregations?: string[];

@@ -39,6 +39,7 @@ export interface ChartConfig {
   yKey?: string;
   nameKey?: string;
   valueKey?: string;
+  seriesKeys?: string[];
 }
 
 export interface ConfigurableChartProps {
@@ -122,12 +123,24 @@ export function ConfigurableChart({
             <XAxis {...xAxisProps} />
             <YAxis {...yAxisProps} />
             {tooltip}
-            <Bar
-              dataKey={yKey}
-              fill="hsl(var(--color-primary))"
-              radius={[4, 4, 0, 0]}
-              maxBarSize={50}
-            />
+            {config?.seriesKeys && config.seriesKeys.length > 0 ? (
+              config.seriesKeys.map((key, index) => (
+                <Bar
+                  key={key}
+                  dataKey={key}
+                  fill={COLORS[index % COLORS.length]}
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={50}
+                />
+              ))
+            ) : (
+              <Bar
+                dataKey={yKey}
+                fill="hsl(var(--color-primary))"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={50}
+              />
+            )}
           </BarChart>
         ) : type === 'line' ? (
           <LineChart
@@ -138,14 +151,28 @@ export function ConfigurableChart({
             <XAxis {...xAxisProps} />
             <YAxis {...yAxisProps} />
             {tooltip}
-            <Line
-              type="monotone"
-              dataKey={yKey}
-              stroke="hsl(var(--color-primary))"
-              strokeWidth={2}
-              dot={{ fill: 'hsl(var(--color-primary))', strokeWidth: 0, r: 3 }}
-              activeDot={{ r: 5 }}
-            />
+             {config?.seriesKeys && config.seriesKeys.length > 0 ? (
+              config.seriesKeys.map((key, index) => (
+                <Line
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  stroke={COLORS[index % COLORS.length]}
+                  strokeWidth={2}
+                  dot={{ fill: COLORS[index % COLORS.length], strokeWidth: 0, r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              ))
+            ) : (
+              <Line
+                type="monotone"
+                dataKey={yKey}
+                stroke="hsl(var(--color-primary))"
+                strokeWidth={2}
+                dot={{ fill: 'hsl(var(--color-primary))', strokeWidth: 0, r: 3 }}
+                activeDot={{ r: 5 }}
+              />
+            )}
           </LineChart>
         ) : type === 'area' ? (
           <AreaChart
@@ -156,14 +183,28 @@ export function ConfigurableChart({
             <XAxis {...xAxisProps} />
             <YAxis {...yAxisProps} />
             {tooltip}
-            <Area
-              type="monotone"
-              dataKey={yKey}
-              stroke="hsl(var(--color-primary))"
-              fill="hsl(var(--color-primary))"
-              fillOpacity={0.15}
-              strokeWidth={2}
-            />
+            {config?.seriesKeys && config.seriesKeys.length > 0 ? (
+              config.seriesKeys.map((key, index) => (
+                <Area
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  stroke={COLORS[index % COLORS.length]}
+                  fill={COLORS[index % COLORS.length]}
+                  fillOpacity={0.15}
+                  strokeWidth={2}
+                />
+              ))
+            ) : (
+              <Area
+                type="monotone"
+                dataKey={yKey}
+                stroke="hsl(var(--color-primary))"
+                fill="hsl(var(--color-primary))"
+                fillOpacity={0.15}
+                strokeWidth={2}
+              />
+            )}
           </AreaChart>
         ) : type === 'pie' ? (
           <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>

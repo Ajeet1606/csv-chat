@@ -48,6 +48,16 @@ export async function executePythonCode(
   let container: Docker.Container | null = null;
 
   try {
+    // Extract date columns from metadata
+    const dateColumns = columns
+      .filter((col) => col.type === 'date')
+      .map((col) => col.name);
+
+    // Build parse_dates parameter for pandas
+    const parseDatesParam = dateColumns.length > 0
+      ? `, parse_dates=${JSON.stringify(dateColumns)}`
+      : '';
+
     // Prepend code to load CSV into df
     const fullCode = `import warnings
 warnings.filterwarnings("ignore")
@@ -56,23 +66,31 @@ import numpy as np
 import json
 
 # Load CSV file into dataframe
-df = pd.read_csv('/data/input.csv')
+df = pd.read_csv('/data/input.csv'${parseDatesParam})
 
 # Available columns for error messages
 _AVAILABLE_COLUMNS = ${JSON.stringify(columns.map((c) => c.name))}
 
 def _safe_to_json(obj):
     if isinstance(obj, pd.DataFrame):
-        return obj.to_dict(orient='records')
+        # Convert datetime columns to strings before serialization
+        df_copy = obj.copy()
+        for col in df_copy.select_dtypes(include=['datetime64']).columns:
+            df_copy[col] = df_copy[col].dt.strftime('%Y-%m-%d %H:%M:%S')
+        return df_copy.to_dict(orient='records')
     elif isinstance(obj, pd.Series):
         try:
             return obj.to_dict()
         except:
             return obj.reset_index().to_dict(orient='records')
+    elif isinstance(obj, (pd.Timestamp, pd.DatetimeTZDtype, pd.Period)):
+        return obj.isoformat() if hasattr(obj, 'isoformat') else str(obj)
     elif hasattr(obj, 'item'):  # numpy scalar
         return obj.item()
     elif isinstance(obj, dict):
         return {str(k): _safe_to_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_safe_to_json(item) for item in obj]
     return obj
 
 try:
@@ -80,6 +98,12 @@ ${code
   .split('\n')
   .map((line) => '    ' + line)
   .join('\n')}
+    
+    # Automatically serialize result with datetime handling
+    if 'result' in locals():
+        print(json.dumps(_safe_to_json(result)))
+    else:
+        print(json.dumps({"error": "No 'result' variable was defined"}))
 except KeyError as e:
     print(json.dumps({"error": f"Column not found: {e}. Available: {list(df.columns)}"}))
 except TypeError as e:

@@ -39,10 +39,10 @@ Before you begin, ensure you have the following installed:
      ```bash
      curl -fsSL https://ollama.com/install.sh | sh
      ```
-   - Start Ollama and download the Mistral model:
+   - Start Ollama and download the Mistral/deepseek-coder:1.3b model:
      ```bash
      ollama serve  # Keep this running in a separate terminal
-     ollama pull mistral
+     ollama pull deepseek-coder:1.3b
      ```
 
 ## Setup
@@ -90,7 +90,7 @@ Before you begin, ensure you have the following installed:
 1. **Upload**: Upload a CSV file through the web interface
 2. **Analyze**: The app extracts metadata (columns, types, sample data)
 3. **Chat**: Ask questions about your data in natural language
-4. **Generate**: Local LLM (Mistral via Ollama) generates Python code
+4. **Generate**: Local LLM (Mistral/deepseek-coder:1.3b via Ollama) generates Python code
 5. **Execute**: Code runs in an isolated Docker container with:
    - 512MB memory limit
    - 1 CPU core limit
@@ -103,7 +103,7 @@ Before you begin, ensure you have the following installed:
 
 - **Frontend**: Next.js 16 with React 19
 - **Styling**: Tailwind CSS v4
-- **LLM**: Ollama (Mistral model) via OpenAI-compatible API
+- **LLM**: Ollama (Mistral/deepseek-coder model) via OpenAI-compatible API
 - **Code Execution**: Dockerode + Python 3.11 sandbox
 - **Data Processing**: pandas + numpy
 
@@ -135,7 +135,7 @@ ollama serve
 ### Mistral model not found
 Download the model:
 ```bash
-ollama pull mistral
+ollama pull deepseek-coder:1.3b
 ```
 
 ### Port 3000 already in use
