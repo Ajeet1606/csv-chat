@@ -20,31 +20,7 @@ const openai = new OpenAI({
 
 const MODEL_NAME = process.env.MODEL_NAME ?? 'mistral';
 
-// -- Interfaces --
-
-export interface SimpleCodeResult {
-  code: string;
-  success: boolean;
-}
-
-export interface SummaryResult {
-  summary: string;
-}
-
-export interface AnalysisResult {
-  success: boolean;
-  code: string;
-  summary: string;
-  result?: unknown;
-  executionTime: number;
-  chartType?: string;
-  chartData?: unknown;
-  chartConfig?: {
-    xKey?: string;
-    yKey?: string;
-    seriesKeys?: string[];
-  };
-}
+import { SimpleCodeResult, SummaryResult, AnalysisResult } from './types';
 
 // -- Helpers --
 
@@ -139,6 +115,8 @@ Rules:
 7. Use pd.to_datetime() if needed.
 8. For rolling/mean, select ONLY numeric columns (e.g. df[['col']].rolling...).
 9. If using time-based rolling (e.g. '30D'), you MUST sort the index first: .sort_index().
+10. If any comparisons to strings, ensure case insensitivity and must apply .str.lower().
+11. While referring to column names, please use the exact names as provided.
 
 Output ONLY the code.`;
 
@@ -163,8 +141,7 @@ Output ONLY the code.`;
 export async function generateAnalysisSummary(
   query: string,
   code: string,
-  result: unknown,
-  executionTime: number,
+  result: unknown
 ): Promise<SummaryResult> {
   const preview = JSON.stringify(result).substring(0, 400);
   const prompt = `Summarize this analysis in 1 sentence.
@@ -179,7 +156,8 @@ Result Preview: ${preview}`;
       temperature: 0.3,
       max_tokens: 100,
     });
-    const summary = completion.choices[0]?.message?.content?.trim() || 'Analysis completed.';
+    const summary =
+      completion.choices[0]?.message?.content?.trim() || 'Analysis completed.';
     return {
       summary,
     };
@@ -237,12 +215,7 @@ export async function analyzeDataset(
   const safeResult = sanitizeExecResult(exec.result);
 
   // 5. Summarize
-  const summary = await generateAnalysisSummary(
-    query,
-    gen.code,
-    safeResult,
-    exec.executionTime
-  );
+  const summary = await generateAnalysisSummary(query, gen.code, safeResult);
 
   // 6. Charts
   const chartRec = recommendChart(safeResult);
