@@ -372,6 +372,20 @@ export function normalizeDataForChart(
       return null; // Will be displayed as number, not chart
     }
 
+    // If object contains arrays (e.g. { "monthly_revenue": [...] })
+    const arrayValues = Object.entries(obj)
+      .filter(([, v]) => Array.isArray(v) && v.length > 0 && typeof v[0] === 'object')
+      .map(([k, v]) => ({ key: k, value: v as Record<string, unknown>[] }));
+
+    if (arrayValues.length > 0) {
+      // Pick the longest array as the primary dataset
+      const best = arrayValues.reduce((max, current) =>
+        current.value.length > max.value.length ? current : max
+      );
+      // Recursively normalize this array
+      return normalizeDataForChart(best.value, chartType);
+    }
+
     const normalized = Object.entries(obj)
       .filter(([, v]) => typeof v === 'number')
       .map(([name, value]) => ({ name, value: value as number }));
