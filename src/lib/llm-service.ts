@@ -107,7 +107,7 @@ ${columnsDescription}
 
 Rules:
 1. "df" is already loaded.
-2. Store result in "result".
+2. Store the FINAL processed data in the variable "result".
 3. "result" must be a DataFrame, Series, dict, or list.
 4. For groupby, use .reset_index().
 5. For single values, use {"value": x, "label": "..."}.
@@ -117,6 +117,8 @@ Rules:
 9. If using time-based rolling (e.g. '30D'), you MUST sort the index first: .sort_index().
 10. If any comparisons to strings, ensure case insensitivity and must apply .str.lower().
 11. While referring to column names, please use the exact names as provided.
+12. VERY IMPORTANT: If the user explicitly asks for a specific chart type (bar, line, pie, scatter, area), you MUST add a comment at the very first line of the code: "# CHART_TYPE: [type]". Example: "# CHART_TYPE: line"
+13. If the user asks to combine/group specific values (e.g. "Asia and Europe"), you MUST replace those values with the new group name first, and THEN perform a final .groupby().sum() to aggregate the data.
 
 Output ONLY the code.`;
 
@@ -218,7 +220,10 @@ export async function analyzeDataset(
   const summary = await generateAnalysisSummary(query, gen.code, safeResult);
 
   // 6. Charts
-  const chartRec = recommendChart(safeResult);
+  const chartTypeMatch = gen.code.match(/#\s*CHART_TYPE:\s*(\w+)/i);
+  const userChartPreference = chartTypeMatch ? chartTypeMatch[1].toLowerCase() : undefined;
+
+  const chartRec = recommendChart(safeResult, userChartPreference);
   const chartData = normalizeDataForChart(safeResult, chartRec.chartType);
 
   return {

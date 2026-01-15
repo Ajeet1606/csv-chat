@@ -170,8 +170,19 @@ function analyzeData(data: unknown): DataAnalysis {
 /**
  * Recommend the best chart type based on data analysis
  */
-export function recommendChart(data: unknown): ChartRecommendation {
+export function recommendChart(data: unknown, userPreference?: string): ChartRecommendation {
   const analysis = analyzeData(data);
+
+  // Honor user preference if valid
+  if (userPreference && ['bar', 'line', 'area', 'pie', 'scatter'].includes(userPreference)) {
+    return {
+      chartType: userPreference as ChartType,
+      confidence: 'high',
+      reason: `User explicitly requested ${userPreference} chart`,
+      // Attempt to auto-detect config based on usual logic
+      config: analysis.isNumericMap ? { nameKey: 'name', valueKey: 'value' } : undefined
+    };
+  }
 
   // Error or empty data
   if (!analysis.isObject && !analysis.isArray) {
