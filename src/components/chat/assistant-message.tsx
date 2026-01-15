@@ -262,7 +262,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
             </div>
             {expandedOutput && (
               <div className="p-4">
-                <pre className="bg-muted text-foreground overflow-x-auto rounded p-3 font-mono text-xs wrap-break-word whitespace-pre-wrap">
+                <pre className="bg-muted text-foreground max-h-60 overflow-x-auto overflow-y-auto rounded p-3 font-mono text-xs whitespace-pre-wrap break-words">
                   <code>{message.analysis.codeOutput}</code>
                 </pre>
               </div>
@@ -271,7 +271,10 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
         )}
 
         {/* Visualization Section - Based on recommended chart type */}
-        {message.analysis.success !== false && message.analysis.displayType && (
+        {message.analysis.success !== false &&
+          message.analysis.displayType &&
+          message.analysis.chartData &&
+          message.analysis.chartData.length > 0 && (
           <Card className="bg-card border-border overflow-hidden border">
             <div className="bg-muted/50 hover:bg-muted/70 border-border flex w-full items-center justify-between border-b px-4 py-3 transition-colors">
               <button

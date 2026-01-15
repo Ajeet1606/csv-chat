@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Send, Upload, RotateCcw, Menu, X } from 'lucide-react';
+import { Loader2, Send, Upload, RotateCcw, Menu, X, ArrowDown } from 'lucide-react';
 import { ChatMessage } from '@/components/chat/chat-message';
 import { AssistantMessage } from '@/components/chat/assistant-message';
 import { SuggestedQuestions } from '@/components/chat/suggested-questions';
@@ -42,6 +42,8 @@ export default function ChatPage() {
 
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [processingError, setProcessingError] = useState<string | null>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const csvFile = sessionStorage.getItem('csvFile');
@@ -161,6 +163,17 @@ export default function ChatPage() {
       router.push('/');
     }
   };
+  
+  const handleScroll = () => {
+    if (!scrollAreaRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current;
+    const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+    setShowScrollButton(isScrolledUp);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   return (
     <div className="bg-background flex h-screen flex-col">
@@ -223,7 +236,11 @@ export default function ChatPage() {
       {/* Main Content - Single Column Chat */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Messages Container */}
-        <div className="scrollbar-hidden mx-auto w-full max-w-4xl flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
+        <div 
+          ref={scrollAreaRef}
+          onScroll={handleScroll}
+          className="scrollbar-hidden mx-auto w-full max-w-4xl flex-1 space-y-4 overflow-y-auto p-4 sm:p-6 relative"
+        >
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-start space-y-6 text-center">
               <div className="space-y-3 pt-4">
@@ -290,6 +307,18 @@ export default function ChatPage() {
           )}
 
           <div ref={messagesEndRef} />
+          
+          {/* Scroll to bottom button */}
+          {showScrollButton && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="fixed bottom-24 right-8 z-50 rounded-full shadow-lg md:right-12"
+              onClick={scrollToBottom}
+            >
+              <ArrowDown className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
         {/* Input Area */}
